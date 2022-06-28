@@ -269,9 +269,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
             if (previousSessionId >= 0) {
                 self->_sessionId = previousSessionId;
             }
-
-
-        [self addObservers];
     }
     return self;
 }
@@ -327,28 +324,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     }
 
     return success;
-}
-
-- (void)addObservers {
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    [center addObserver:self
-               selector:@selector(enterForeground)
-                   name:NSApplicationDidBecomeActiveNotification
-                 object:nil];
-    [center addObserver:self
-               selector:@selector(enterBackground)
-                   name:NSApplicationDidResignActiveNotification
-                 object:nil];
-}
-
-- (void)removeObservers {
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    [center removeObserver:self name:NSApplicationDidBecomeActiveNotification object:nil];
-    [center removeObserver:self name:NSApplicationDidResignActiveNotification object:nil];
-}
-
-- (void)dealloc {
-    [self removeObservers];
 }
 
 - (void)initializeApiKey:(NSString *)apiKey {
@@ -947,27 +922,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
             [self uploadEventsWithLimit:limit];
         }
     }] resume];
-}
-
-#pragma mark - application lifecycle methods
-
-- (void)enterForeground {
-        NSNumber *now = [NSNumber numberWithLongLong:[[self currentTime] timeIntervalSince1970] * 1000];
-        
-        // Fetch the data ingestion endpoint based on current device's geo location.
-        
-        [self refreshDynamicConfig];
-        [self startOrContinueSessionNSNumber:now];
-        self->_inForeground = YES;
-        [self uploadEvents];
-}
-
-- (void)enterBackground {
-    NSNumber *now = [NSNumber numberWithLongLong:[[self currentTime] timeIntervalSince1970] * 1000];
-    
-    self->_inForeground = NO;
-    [self refreshSessionTime:now];
-    [self uploadEventsWithLimit:0];
 }
 
 
