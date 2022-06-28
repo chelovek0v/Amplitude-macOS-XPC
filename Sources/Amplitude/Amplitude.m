@@ -48,7 +48,6 @@
 
 #import "Amplitude.h"
 #import "AmplitudePrivate.h"
-#import "AMPBackgroundNotifier.h"
 #import "AMPConstants.h"
 #import "AMPConfigManager.h"
 #import "AMPDeviceInfo.h"
