@@ -6,10 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Amplitude",
     platforms: [
-        .iOS(.v10),
-        .tvOS(.v9),
-        .macOS(.v10_10),
-        .watchOS(.v3),
+        .macOS(.v10_10)
     ],
     products: [
         .library(name: "Amplitude", targets: ["Amplitude"]),
@@ -20,9 +17,7 @@ let package = Package(
     targets: [
         .target(
             name: "Amplitude",
-            dependencies: [
-                .product(name: "AnalyticsConnector", package: "analytics-connector-ios")
-            ],
+            dependencies: [ ],
             path: "Sources",
             resources: [.process("Resources/ComodoRsaDomainValidationCA.der")],
             publicHeadersPath: "Amplitude/Public"),
