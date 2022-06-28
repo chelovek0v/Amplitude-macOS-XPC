@@ -680,8 +680,14 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 - (void)uploadEventsWithDelay:(int)delay {
     if (!_updateScheduled) {
         _updateScheduled = YES;
+        
+        __block __weak Amplitude *weakSelf = self;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, delay * NSEC_PER_SEC), dispatch_get_current_queue(), ^{
-        [self uploadEventsInBackground];
+            __block __strong Amplitude *strongSelf = weakSelf;
+            if (strongSelf == nil) {
+                return;
+            }
+            [strongSelf uploadEventsInBackground];
         });
     }
 }
