@@ -31,7 +31,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef NSString *_Nonnull (^AMPAdSupportBlock)(void);
+typedef void (^AMPUploadBlock)(void);
 typedef NSDictionary *_Nullable (^AMPLocationInfoBlock)(void);
 /**
  Amplitude iOS SDK.
@@ -162,6 +162,8 @@ typedef NSDictionary *_Nullable (^AMPLocationInfoBlock)(void);
  *      };
  */
 @property (nonatomic, strong, nullable) AMPLocationInfoBlock locationInfoBlock;
+
+@property (nonatomic, strong, nullable) AMPUploadBlock uploadBlock;
 
 /**
  Content-Type header for event sending requests. Only relevant for sending events to a different URL (e.g. proxy server)

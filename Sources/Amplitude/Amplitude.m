@@ -676,6 +676,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
     @synchronized (self) {
         if (_updatingCurrently) {
+            self.uploadBlock();
             return;
         }
         _updatingCurrently = YES;
@@ -685,6 +686,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         // Don't communicate with the server if the user has opted out.
         if ([self optOut] || self->_offline) {
             self->_updatingCurrently = NO;
+            self.uploadBlock();
             return;
         }
 
@@ -692,6 +694,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         long numEvents = limit > 0 ? fminl(eventCount, limit) : eventCount;
         if (numEvents == 0) {
             self->_updatingCurrently = NO;
+            self.uploadBlock();
             return;
         }
         NSMutableArray *events = [self.dbHelper getEvents:-1 limit:numEvents];
@@ -708,6 +711,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         if (error != nil) {
             AMPLITUDE_ERROR(@"ERROR: NSJSONSerialization error: %@", error);
             self->_updatingCurrently = NO;
+            self.uploadBlock();
             return;
         }
 
@@ -715,9 +719,11 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         if ([AMPUtils isEmptyString:eventsString]) {
             AMPLITUDE_ERROR(@"ERROR: JSONSerialization of event upload data resulted in a NULL string");
             self->_updatingCurrently = NO;
+            self.uploadBlock();
+
             return;
         }
-
+        
         [self makeEventUploadPostRequest:self->_serverUrl events:eventsString numEvents:numEvents maxEventId:maxEventId maxIdentifyId:maxIdentifyId];
 }
 
@@ -912,6 +918,9 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         if (uploadSuccessful && [self.dbHelper getEventCount] > self.eventUploadThreshold) {
             int limit = self->_backoffUpload ? self->_backoffUploadBatchSize : 0;
             [self uploadEventsWithLimit:limit];
+        }
+        else {
+            self.uploadBlock();
         }
     }] resume];
 }
