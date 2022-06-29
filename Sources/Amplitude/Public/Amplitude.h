@@ -145,21 +145,6 @@ typedef NSDictionary *_Nullable (^AMPLocationInfoBlock)(void);
 */
 @property (nonatomic, copy, nullable) NSString *libraryVersion;
 
-/**
- * Sets a block to be called when IDFA / AdSupport identifier is created.
- * This is to allow for apps that do not want ad tracking to pass App Store guidelines in certain categories while
- * still allowing apps that do ad tracking to continue to function.  This block will be called repeatedly during
- * the life of the application as IDFA is needed.
- *
- * This achieve the previous SDK behavior use the example as follows.  It assumes you've handled any setup
- * and dialogs necessary to receive permissions from the user.
- *
- * Example:
- *      amplitude.adSupportBlock = ^{
- *          return [[ASIdentifierManager sharedManager] advertisingIdentifier];
- *      };
- */
-@property (nonatomic, strong, nullable) AMPAdSupportBlock adSupportBlock;
 
 /**
  * Sets a block to be called when location (latitude, longitude) information can be passed into an event.
@@ -595,14 +580,6 @@ typedef NSDictionary *_Nullable (^AMPLocationInfoBlock)(void);
  */
 - (void)setOffline:(BOOL)offline;
 
-/**
- Uses advertisingIdentifier instead of identifierForVendor as the device ID
-
- Apple prohibits the use of advertisingIdentifier if your app does not have advertising. Useful for tying together data from advertising campaigns to anlaytics data.
-
- **NOTE:** Must be called before initializeApiKey: is called to function.
- */
-- (void)useAdvertisingIdForDeviceId;
 
 /**
   By default the iOS SDK will track several user properties such as carrier, city, country, ip_address, language, platform, etc. You can use the provided AMPTrackingOptions interface to customize and disable individual fields.

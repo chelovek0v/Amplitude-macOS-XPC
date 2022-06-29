@@ -165,35 +165,18 @@
 
 - (NSString *)vendorID {
     if (!_vendorID) {
-#if !TARGET_OS_OSX && !TARGET_OS_WATCH
-        if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
-#endif
-            NSString *identifierForVendor = [AMPDeviceInfo getVendorID:5];
-            if (identifierForVendor != nil &&
-                ![identifierForVendor isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
-                _vendorID = identifierForVendor;
-            }
+        NSString *identifierForVendor = [AMPDeviceInfo getVendorID:5];
+        if (identifierForVendor != nil &&
+            ![identifierForVendor isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
+            _vendorID = identifierForVendor;
         }
-#if !TARGET_OS_OSX && !TARGET_OS_WATCH
     }
-#endif
+    
     return _vendorID;
 }
 
 + (NSString *)getVendorID:(int)maxAttempts {
-#if TARGET_OS_WATCH
-    NSString *identifier;
-    if (@available(watchOS 6.2, *)) {
-        identifier = [[[WKInterfaceDevice currentDevice] identifierForVendor] UUIDString];
-    } else {
-        // Identifier for vendor is not available on this version.
-        identifier = [[NSUUID UUID] UUIDString];
-    }
-#elif !TARGET_OS_OSX
-    NSString *identifier = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
-#else
     NSString *identifier = [self getMacAddress];
-#endif
     if (identifier == nil && maxAttempts > 0) {
         // Try again every 5 seconds
         [NSThread sleepForTimeInterval:5.0];

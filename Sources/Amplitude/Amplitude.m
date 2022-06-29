@@ -116,7 +116,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     
 
     AMPDeviceInfo *_deviceInfo;
-    BOOL _useAdvertisingIdForDeviceId;
 
     AMPTrackingOptions *_inputTrackingOptions;
     AMPTrackingOptions *_appliedTrackingOptions;
@@ -189,7 +188,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         _sessionId = -1;
         _updateScheduled = NO;
         _updatingCurrently = NO;
-        _useAdvertisingIdForDeviceId = NO;
         _backoffUpload = NO;
         _offline = NO;
         _serverUrl = kAMPEventLogUrl;
@@ -573,12 +571,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
     NSMutableDictionary *apiProperties = [event valueForKey:@"api_properties"];
 
-    if ([_appliedTrackingOptions shouldTrackIDFA]) {
-        NSString *advertiserID = [self getAdSupportID];
-        if (advertiserID != nil) {
-            [apiProperties setValue:advertiserID forKey:@"ios_idfa"];
-        }
-    }
     NSString *vendorID = _deviceInfo.vendorID;
     if ([_appliedTrackingOptions shouldTrackIDFV] && vendorID) {
         [apiProperties setValue:vendorID forKey:@"ios_idfv"];
@@ -1241,9 +1233,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         [self setDeviceId:[AMPDeviceInfo generateUUID]];
 }
 
-- (void)useAdvertisingIdForDeviceId {
-    _useAdvertisingIdForDeviceId = YES;
-}
 
 - (void)setPlan:(AMPPlan *)plan {
     _plan = plan;
@@ -1265,17 +1254,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 }
 
 #pragma mark - Getters for device data
-- (NSString *)getAdSupportID {
-    NSString *result = nil;
-    if (self.adSupportBlock != nil && [_appliedTrackingOptions shouldTrackIDFA]) {
-        result = self.adSupportBlock();
-    }
-    // IDFA access was denied or still in progress.
-    if ([result isEqualToString:@"00000000-0000-0000-0000-000000000000"]) {
-        result = nil;
-    }
-    return result;
-}
 
 - (NSString *)getDeviceId {
     return self.deviceId;
@@ -1298,10 +1276,6 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (NSString *)_getDeviceId {
     NSString *deviceId = nil;
-    if (_useAdvertisingIdForDeviceId && [_appliedTrackingOptions shouldTrackIDFA]) {
-        deviceId = [self getAdSupportID];
-    }
-
     // return identifierForVendor
     if ([_appliedTrackingOptions shouldTrackIDFV] && !deviceId) {
         deviceId = _deviceInfo.vendorID;
