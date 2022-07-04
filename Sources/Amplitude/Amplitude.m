@@ -446,7 +446,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     userProperties = [userProperties copy];
     groups = [groups copy];
     groupProperties = [groupProperties copy];
-    
+   // WIP: move up
         // Respect the opt-out setting by not sending or storing any events.
         if ([self optOut]) {
             AMPLITUDE_LOG(@"User has opted out of tracking. Event %@ not logged.", eventType);
@@ -673,7 +673,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling uploadEvents:");
         return;
     }
-
+// WIP: remove synch
     @synchronized (self) {
         if (_updatingCurrently) {
             self.uploadBlock();
@@ -682,7 +682,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         _updatingCurrently = YES;
     }
     
-
+// WIP: move up
         // Don't communicate with the server if the user has opted out.
         if ([self optOut] || self->_offline) {
             self->_updatingCurrently = NO;
