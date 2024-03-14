@@ -22,32 +22,19 @@
 //
 
 #import <os/log.h>
-#ifndef AMPLITUDE_DEBUG
-#define AMPLITUDE_DEBUG 1
-#endif
 
-os_log_t amp_log = nil;
-
-#ifndef AMPLITUDE_LOG
-#if AMPLITUDE_DEBUG
-//#   define AMPLITUDE_LOG(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
-#   define AMPLITUDE_LOG(fmt, ...) os_log(amp_log, fmt, ##__VA_ARGS__)
-#else
-#   define AMPLITUDE_LOG(...)
-#endif
-#endif
+os_log_t AMPLOG = nil;
 
 #ifndef AMPLITUDE_LOG_ERRORS
 #define AMPLITUDE_LOG_ERRORS 1
 #endif
 
-#ifndef AMPLITUDE_ERROR
-#if AMPLITUDE_LOG_ERRORS
-//#   define AMPLITUDE_ERROR(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
-#   define AMPLITUDE_ERROR(fmt, ...) os_log(amp_log, fmt, ##__VA_ARGS__)
-#else
-#   define AMPLITUDE_ERROR(...)
+#ifndef AMPLITUDE_LOG
+#   define AMPLITUDE_LOG(fmt, ...) os_log(AMPLOG, fmt, ##__VA_ARGS__)
 #endif
+
+#ifndef AMPLITUDE_ERROR
+#   define AMPLITUDE_ERROR(fmt, ...) os_log_error(AMPLOG, fmt, ##__VA_ARGS__)
 #endif
 
 
@@ -175,7 +162,12 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 	[super initialize];
 
 	if (self == [Amplitude self]) {
-		amp_log = os_log_create("Amplitude", "Redline");
+		if (NSProcessInfo.processInfo.environment[@"AmplitudeDebug"] != nil) {
+			AMPLOG = os_log_create("Amplitude", "Amplitude");
+		}
+		else {
+			AMPLOG = OS_LOG_DISABLED;
+		}
 	}
 }
 
