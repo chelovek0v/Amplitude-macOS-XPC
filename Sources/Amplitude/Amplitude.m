@@ -21,13 +21,17 @@
 //  THE SOFTWARE.
 //
 
+#import <os/log.h>
 #ifndef AMPLITUDE_DEBUG
-#define AMPLITUDE_DEBUG 0
+#define AMPLITUDE_DEBUG 1
 #endif
+
+os_log_t amp_log = nil;
 
 #ifndef AMPLITUDE_LOG
 #if AMPLITUDE_DEBUG
-#   define AMPLITUDE_LOG(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
+//#   define AMPLITUDE_LOG(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
+#   define AMPLITUDE_LOG(fmt, ...) os_log(amp_log, fmt, ##__VA_ARGS__)
 #else
 #   define AMPLITUDE_LOG(...)
 #endif
@@ -39,7 +43,8 @@
 
 #ifndef AMPLITUDE_ERROR
 #if AMPLITUDE_LOG_ERRORS
-#   define AMPLITUDE_ERROR(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
+//#   define AMPLITUDE_ERROR(fmt, ...) NSLog(fmt, ##__VA_ARGS__)
+#   define AMPLITUDE_ERROR(fmt, ...) os_log(amp_log, fmt, ##__VA_ARGS__)
 #else
 #   define AMPLITUDE_ERROR(...)
 #endif
@@ -167,6 +172,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 #pragma mark - Main class methods
 - (instancetype)init {
+	amp_log = os_log_create("Amplitude", "Redline");
     return [self initWithInstanceName:nil];
 }
 
@@ -231,10 +237,10 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
                 [self->_propertyList setObject:[NSNumber numberWithInt:1] forKey:DATABASE_VERSION];
                 BOOL success = [self savePropertyList];
                 if (!success) {
-                    AMPLITUDE_ERROR(@"ERROR: Unable to save propertyList to file on initialization");
+                    AMPLITUDE_ERROR("ERROR: Unable to save propertyList to file on initialization");
                 }
             } else {
-                AMPLITUDE_LOG(@"Loaded from %@", _propertyListPath);
+                AMPLITUDE_LOG("Loaded from %@", _propertyListPath);
             }
 
             // update database if necessary
@@ -288,12 +294,12 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         NSData *jsonData = nil;
         jsonData = [NSJSONSerialization dataWithJSONObject:[AMPUtils makeJSONSerializable:event] options:0 error:&error];
         if (error != nil) {
-            AMPLITUDE_ERROR(@"ERROR: NSJSONSerialization error: %@", error);
+            AMPLITUDE_ERROR("ERROR: NSJSONSerialization error: %@", error);
             continue;
         }
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         if ([AMPUtils isEmptyString:jsonString]) {
-            AMPLITUDE_ERROR(@"ERROR: NSJSONSerialization resulted in a null string, skipping this event");
+            AMPLITUDE_ERROR("ERROR: NSJSONSerialization resulted in a null string, skipping this event");
             continue;
         }
         success &= [defaultDbHelper addEvent:jsonString];
@@ -344,7 +350,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
                   userId:(NSString *)userId
                setUserId:(BOOL)setUserId {
     if (apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil in initializeApiKey:");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil in initializeApiKey:");
         return;
     }
 
@@ -356,7 +362,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     }
 
     if ([apiKey length] == 0) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be blank in initializeApiKey:");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be blank in initializeApiKey:");
         return;
     }
 
@@ -423,16 +429,16 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (void)logEvent:(NSString *)eventType withEventProperties:(NSDictionary *)eventProperties withApiProperties:(NSDictionary *)apiProperties withUserProperties:(NSDictionary *)userProperties withGroups:(NSDictionary *)groups withGroupProperties:(NSDictionary *)groupProperties withTimestamp:(NSNumber *)timestamp outOfSession:(BOOL)outOfSession withMiddlewareExtra: (nullable NSMutableDictionary *) extra {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logEvent");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logEvent");
         return;
     }
 
     if (![self isArgument:eventType validType:[NSString class] methodName:@"logEvent"]) {
-        AMPLITUDE_ERROR(@"ERROR: eventType must be an NSString");
+        AMPLITUDE_ERROR("ERROR: eventType must be an NSString");
         return;
     }
     if (eventProperties != nil && ![self isArgument:eventProperties validType:[NSDictionary class] methodName:@"logEvent"]) {
-        AMPLITUDE_ERROR(@"ERROR: eventProperties must by a NSDictionary");
+        AMPLITUDE_ERROR("ERROR: eventProperties must by a NSDictionary");
         return;
     }
 
@@ -449,7 +455,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
    // WIP: move up
         // Respect the opt-out setting by not sending or storing any events.
         if ([self optOut]) {
-            AMPLITUDE_LOG(@"User has opted out of tracking. Event %@ not logged.", eventType);
+            AMPLITUDE_LOG("User has opted out of tracking. Event %@ not logged.", eventType);
             return;
         }
 
@@ -480,7 +486,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         }];
         
         if (!middlewareCompleted) {
-            AMPLITUDE_LOG(@"Middleware chain skipped logEvent action. Event %@ not logged.", eventType);
+            AMPLITUDE_LOG("Middleware chain skipped logEvent action. Event %@ not logged.", eventType);
             return;
         }
 
@@ -488,12 +494,12 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         NSError *error = nil;
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[AMPUtils makeJSONSerializable:event] options:0 error:&error];
         if (error != nil) {
-            AMPLITUDE_ERROR(@"ERROR: could not JSONSerialize event type %@: %@", eventType, error);
+            AMPLITUDE_ERROR("ERROR: could not JSONSerialize event type %@: %@", eventType, error);
             return;
         }
         NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
         if ([AMPUtils isEmptyString:jsonString]) {
-            AMPLITUDE_ERROR(@"ERROR: JSONSerializing event type %@ resulted in an NULL string", eventType);
+            AMPLITUDE_ERROR("ERROR: JSONSerializing event type %@ resulted in an NULL string", eventType);
             return;
         }
         if ([eventType isEqualToString:IDENTIFY_EVENT] || [eventType isEqualToString:GROUP_IDENTIFY_EVENT]) {
@@ -503,7 +509,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         }
         
 
-        AMPLITUDE_LOG(@"Logged %@ Event", event[@"event_type"]);
+        AMPLITUDE_LOG("Logged %@ Event", event[@"event_type"]);
 
         [self truncateEventQueues];
 
@@ -605,7 +611,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 - (void)logRevenue:(NSString *)productIdentifier quantity:(NSInteger)quantity price:(NSNumber *)price receipt:(NSData *)receipt
 {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logRevenue:");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logRevenue:");
         return;
     }
     if (![self isArgument:price validType:[NSNumber class] methodName:@"logRevenue:"]) {
@@ -631,7 +637,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (void)logRevenueV2:(AMPRevenue *)revenue {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logRevenueV2");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling logRevenueV2");
         return;
     }
     if (revenue == nil || ![revenue isValidRevenue]) {
@@ -670,7 +676,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (void)uploadEventsWithLimit:(int)limit {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling uploadEvents:");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling uploadEvents:");
         return;
     }
 // WIP: remove synch
@@ -709,7 +715,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         NSData *eventsDataLocal = nil;
         eventsDataLocal = [NSJSONSerialization dataWithJSONObject:uploadEvents options:0 error:&error];
         if (error != nil) {
-            AMPLITUDE_ERROR(@"ERROR: NSJSONSerialization error: %@", error);
+            AMPLITUDE_ERROR("ERROR: NSJSONSerialization error: %@", error);
             self->_updatingCurrently = NO;
             self.uploadBlock(nil);
             return;
@@ -717,7 +723,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
         NSString *eventsString = [[NSString alloc] initWithData:eventsDataLocal encoding:NSUTF8StringEncoding];
         if ([AMPUtils isEmptyString:eventsString]) {
-            AMPLITUDE_ERROR(@"ERROR: JSONSerialization of event upload data resulted in a NULL string");
+            AMPLITUDE_ERROR("ERROR: JSONSerialization of event upload data resulted in a NULL string");
             self->_updatingCurrently = NO;
             self.uploadBlock(nil);
 
@@ -839,12 +845,12 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
     if (_token != nil) {
         NSString *auth = [NSString stringWithFormat:@"Bearer %@", _token];
-        AMPLITUDE_LOG(@"Attaching bearer %@", _token);
+        AMPLITUDE_LOG("Attaching bearer %@", _token);
         [request setValue:auth forHTTPHeaderField:@"Authorization"];
     }
 
     [request setHTTPBody:postData];
-    AMPLITUDE_LOG(@"Events: %@", events);
+    AMPLITUDE_LOG("Events: %@", events);
 
     // If pinning is enabled, use the AMPURLSession that handles it.
 #if AMPLITUDE_SSL_PINNING
@@ -868,13 +874,13 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
                         (void) [self.dbHelper removeIdentifys:maxIdentifyId];
                     }
                 } else if ([result isEqualToString:@"invalid_api_key"]) {
-                    AMPLITUDE_ERROR(@"ERROR: Invalid API Key, make sure your API key is correct in initializeApiKey:");
+                    AMPLITUDE_ERROR("ERROR: Invalid API Key, make sure your API key is correct in initializeApiKey:");
                 } else if ([result isEqualToString:@"bad_checksum"]) {
-                    AMPLITUDE_ERROR(@"ERROR: Bad checksum, post request was mangled in transit, will attempt to reupload later");
+                    AMPLITUDE_ERROR("ERROR: Bad checksum, post request was mangled in transit, will attempt to reupload later");
                 } else if ([result isEqualToString:@"request_db_write_failed"]) {
-                    AMPLITUDE_ERROR(@"ERROR: Couldn't write to request database on server, will attempt to reupload later");
+                    AMPLITUDE_ERROR("ERROR: Couldn't write to request database on server, will attempt to reupload later");
                 } else {
-                    AMPLITUDE_ERROR(@"ERROR: %@, will attempt to reupload later", result);
+                    AMPLITUDE_ERROR("ERROR: %@, will attempt to reupload later", result);
                 }
             } else if ([httpResponse statusCode] == 413) {
                 // If blocked by one massive event, drop it
@@ -891,26 +897,26 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
                 self->_backoffUpload = YES;
                 long newNumEvents = MIN(numEvents, self->_backoffUploadBatchSize);
                 self->_backoffUploadBatchSize = MAX((int)ceilf(newNumEvents / 2.0f), 1);
-                AMPLITUDE_LOG(@"Request too large, will decrease size and attempt to reupload");
+                AMPLITUDE_LOG("Request too large, will decrease size and attempt to reupload");
                 self->_updatingCurrently = NO;
                 [self uploadEventsWithLimit:self->_backoffUploadBatchSize];
 
             } else {
-                AMPLITUDE_ERROR(@"ERROR: Connection response received:%ld, %@", (long)[httpResponse statusCode],
+                AMPLITUDE_ERROR("ERROR: Connection response received:%ld, %@", (long)[httpResponse statusCode],
                     [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
             }
         } else if (error != nil) {
             if ([error code] == -1009) {
-                AMPLITUDE_LOG(@"No internet connection (not connected to internet), unable to upload events");
+                AMPLITUDE_LOG("No internet connection (not connected to internet), unable to upload events");
             } else if ([error code] == -1003) {
-                AMPLITUDE_LOG(@"No internet connection (hostname not found), unable to upload events");
+                AMPLITUDE_LOG("No internet connection (hostname not found), unable to upload events");
             } else if ([error code] == -1001) {
-                AMPLITUDE_LOG(@"No internet connection (request timed out), unable to upload events");
+                AMPLITUDE_LOG("No internet connection (request timed out), unable to upload events");
             } else {
-                AMPLITUDE_ERROR(@"ERROR: Connection error:%@", error);
+                AMPLITUDE_ERROR("ERROR: Connection error:%@", error);
             }
         } else {
-            AMPLITUDE_ERROR(@"ERROR: response empty, error empty for NSURLConnection");
+            AMPLITUDE_ERROR("ERROR: response empty, error empty for NSURLConnection");
         }
 
         self->_updatingCurrently = NO;
@@ -985,7 +991,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (void)sendSessionEvent:(NSString *)sessionEvent {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before sending session event");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before sending session event");
         return;
     }
 
@@ -1070,7 +1076,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     }
 
     if (groupType == nil || [groupType isEqualToString:@""]) {
-        AMPLITUDE_LOG(@"ERROR: groupType cannot be nil or an empty string");
+        AMPLITUDE_LOG("ERROR: groupType cannot be nil or an empty string");
         return;
     }
 
@@ -1113,12 +1119,12 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 
 - (void)setGroup:(NSString *)groupType groupName:(NSObject *)groupName {
     if (self.apiKey == nil) {
-        AMPLITUDE_ERROR(@"ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling setGroupType");
+        AMPLITUDE_ERROR("ERROR: apiKey cannot be nil or empty, set apiKey with initializeApiKey: before calling setGroupType");
         return;
     }
 
     if (groupType == nil || [groupType isEqualToString:@""]) {
-        AMPLITUDE_LOG(@"ERROR: groupType cannot be nil or an empty string");
+        AMPLITUDE_LOG("ERROR: groupType cannot be nil or an empty string");
         return;
     }
 
@@ -1327,7 +1333,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     } else if ([obj isKindOfClass:[NSDictionary class]]) {
         // if too many properties, ignore
         if ([(NSDictionary *)obj count] > kAMPMaxPropertyKeys) {
-            AMPLITUDE_LOG(@"WARNING: too many properties (more than 1000), ignoring");
+            AMPLITUDE_LOG("WARNING: too many properties (more than 1000), ignoring");
             return [NSDictionary dictionary];
         }
 
@@ -1337,7 +1343,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
             NSString *coercedKey;
             if (![key isKindOfClass:[NSString class]]) {
                 coercedKey = [key description];
-                AMPLITUDE_LOG(@"WARNING: Non-string property key, received %@, coercing to %@", [key class], coercedKey);
+                AMPLITUDE_LOG("WARNING: Non-string property key, received %@, coercing to %@", [key class], coercedKey);
             } else {
                 coercedKey = key;
             }
@@ -1357,7 +1363,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     if ([argument isKindOfClass:class]) {
         return YES;
     } else {
-        AMPLITUDE_ERROR(@"ERROR: Invalid type argument to method %@, expected %@, received %@, ", methodName, class, [argument class]);
+        AMPLITUDE_ERROR("ERROR: Invalid type argument to method %@, expected %@, received %@, ", methodName, class, [argument class]);
         return NO;
     }
 }
@@ -1392,7 +1398,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 }
 
 - (void)printEventsCount {
-    AMPLITUDE_LOG(@"Events count:%ld", (long) [self.dbHelper getEventCount]);
+    AMPLITUDE_LOG("Events count:%ld", (long) [self.dbHelper getEventCount]);
 }
 
 #pragma mark - Compatibility
@@ -1421,7 +1427,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     @synchronized (_propertyList) {
         BOOL success = [self serializePList:_propertyList toFile:_propertyListPath];
         if (!success) {
-            AMPLITUDE_ERROR(@"Error: Unable to save propertyList to file");
+            AMPLITUDE_ERROR("Error: Unable to save propertyList to file");
         }
         return success;
     }
@@ -1439,11 +1445,11 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
             if (error == nil) {
                 return pList;
             } else {
-                AMPLITUDE_ERROR(@"ERROR: propertyList deserialization error:%@", error);
+                AMPLITUDE_ERROR("ERROR: propertyList deserialization error:%@", error);
                 error = nil;
                 [[NSFileManager defaultManager] removeItemAtPath:path error:&error];
                 if (error != nil) {
-                    AMPLITUDE_ERROR(@"ERROR: Can't remove corrupt propertyList file:%@", error);
+                    AMPLITUDE_ERROR("ERROR: Can't remove corrupt propertyList file:%@", error);
                 }
             }
         }
@@ -1461,14 +1467,14 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         if (propertyListData != nil) {
             BOOL success = [propertyListData writeToFile:path atomically:YES];
             if (!success) {
-                AMPLITUDE_ERROR(@"ERROR: Unable to save propertyList to file");
+                AMPLITUDE_ERROR("ERROR: Unable to save propertyList to file");
             }
             return success;
         } else {
-            AMPLITUDE_ERROR(@"ERROR: propertyListData is nil");
+            AMPLITUDE_ERROR("ERROR: propertyListData is nil");
         }
     } else {
-        AMPLITUDE_ERROR(@"ERROR: Unable to serialize propertyList:%@", error);
+        AMPLITUDE_ERROR("ERROR: Unable to serialize propertyList:%@", error);
     }
     return NO;
 
@@ -1486,19 +1492,19 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
                     if (data != nil) {
                         return data;
                     } else {
-                        AMPLITUDE_ERROR(@"ERROR: unarchived data is nil for file: %@", path);
+                        AMPLITUDE_ERROR("ERROR: unarchived data is nil for file: %@", path);
                     }
                 } else {
-                    AMPLITUDE_ERROR(@"ERROR: Unable to unarchive file %@: %@", path, error);
+                    AMPLITUDE_ERROR("ERROR: Unable to unarchive file %@: %@", path, error);
                 }
             } else {
-                AMPLITUDE_ERROR(@"ERROR: File data is nil for file: %@", path);
+                AMPLITUDE_ERROR("ERROR: File data is nil for file: %@", path);
             }
 
             // if reach here, then an error occured during unarchiving, delete corrupt file
             [fileManager removeItemAtPath:path error:&error];
             if (error != nil) {
-                AMPLITUDE_ERROR(@"ERROR: Can't remove corrupt file %@: %@", path, error);
+                AMPLITUDE_ERROR("ERROR: Can't remove corrupt file %@: %@", path, error);
             }
         }
     }
@@ -1526,17 +1532,17 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
         NSError *archiveError = nil;
         NSData *data = [NSKeyedArchiver archivedDataWithRootObject:obj requiringSecureCoding:NO error:&archiveError];
         if (archiveError != nil) {
-            AMPLITUDE_ERROR(@"ERROR: Unable to archive object %@: %@", obj, archiveError);
+            AMPLITUDE_ERROR("ERROR: Unable to archive object %@: %@", obj, archiveError);
             return NO;
         }
         if (data == nil) {
-            AMPLITUDE_ERROR(@"ERROR: Archived data is nil for obj: %@", obj);
+            AMPLITUDE_ERROR("ERROR: Archived data is nil for obj: %@", obj);
             return NO;
         }
         NSError *writeError = nil;
         BOOL writeSuccessful = [data writeToFile:path options:NSDataWritingAtomic error:&writeError];
         if (writeError != nil || !writeSuccessful) {
-            AMPLITUDE_ERROR(@"ERROR: Unable to write data to file for object %@: %@", obj, archiveError);
+            AMPLITUDE_ERROR("ERROR: Unable to write data to file for object %@: %@", obj, archiveError);
             return NO;
         }
         return YES;
@@ -1558,10 +1564,10 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
     if (![fileManager fileExistsAtPath:to] &&
         [fileManager fileExistsAtPath:from]) {
         if ([fileManager copyItemAtPath:from toPath:to error:&error]) {
-            AMPLITUDE_LOG(@"INFO: copied %@ to %@", from, to);
+            AMPLITUDE_LOG("INFO: copied %@ to %@", from, to);
             [fileManager removeItemAtPath:from error:NULL];
         } else {
-            AMPLITUDE_LOG(@"WARN: Copy from %@ to %@ failed: %@", from, to, error);
+            AMPLITUDE_LOG("WARN: Copy from %@ to %@ failed: %@", from, to, error);
             return NO;
         }
     }
