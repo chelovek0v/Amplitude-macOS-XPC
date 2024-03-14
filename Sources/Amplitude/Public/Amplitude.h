@@ -31,7 +31,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef void (^AMPUploadBlock)(void);
+typedef void (^AMPUploadBlock)(NSError * _Nullable);
 typedef NSDictionary *_Nullable (^AMPLocationInfoBlock)(void);
 /**
  Amplitude iOS SDK.
