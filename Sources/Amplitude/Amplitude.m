@@ -162,7 +162,7 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 	[super initialize];
 
 	if (self == [Amplitude self]) {
-		if (NSProcessInfo.processInfo.environment[@"AmplitudeDebug"] != nil) {
+		if ([NSProcessInfo.processInfo.environment[@"AmplitudeDebug"]  isEqual: @"1"]) {
 			AMPLOG = os_log_create("Amplitude", "Amplitude");
 		}
 		else {
