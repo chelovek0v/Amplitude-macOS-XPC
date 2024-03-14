@@ -171,8 +171,15 @@ static NSString *const SEQUENCE_NUMBER = @"sequence_number";
 }
 
 #pragma mark - Main class methods
++ (void)initialize {
+	[super initialize];
+
+	if (self == [Amplitude self]) {
+		amp_log = os_log_create("Amplitude", "Redline");
+	}
+}
+
 - (instancetype)init {
-	amp_log = os_log_create("Amplitude", "Redline");
     return [self initWithInstanceName:nil];
 }
 
